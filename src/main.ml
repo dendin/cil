@@ -67,8 +67,7 @@ let parseOneFile (fname: string) : C.file =
   );
   cil
 
-(** These are the statically-configured features. To these we append the 
-  * features defined in Feature_config.ml (from Makefile) *)
+(** These are the statically-configured features. *)
   
 let makeCFGFeature : C.featureDescr = 
   { C.fd_name = "makeCFG";
@@ -87,7 +86,7 @@ let makeCFGFeature : C.featureDescr =
     C.fd_post_check = true;
   } 
 
-let features : C.featureDescr list = 
+let staticFeatures : C.featureDescr list =
   [ Epicenter.feature;
     Simplify.feature;
     Canonicalize.feature;
@@ -105,7 +104,6 @@ let features : C.featureDescr list =
     Ptranal.feature;
     Liveness.feature;
   ] 
-  @ Feature_config.features 
 
 let rec processOneFile (cil: C.file) =
   begin
@@ -140,7 +138,7 @@ let rec processOneFile (cil: C.file) =
             end
           end
         end)
-      features;
+      (Features.getFeatures ());
 
 
     (match !outChannel with
@@ -191,7 +189,7 @@ let theMain () =
            " Enable " ^ fdesc.C.fd_description) ::
           fdesc.C.fd_extraopt @ acc
       )
-      features
+      staticFeatures
       [blankLine]
   in
   let featureArgs = 
@@ -214,6 +212,7 @@ let theMain () =
     Stats.reset Stats.SoftwareTimer;
 
     (* parse the command-line arguments *)
+    List.iter Features.registerFeature staticFeatures;
     Arg.parse (Arg.align argDescr) Ciloptions.recordFile usageMsg;
     Cil.initCIL ();
 
