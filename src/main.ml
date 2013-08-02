@@ -170,6 +170,12 @@ let theMain () =
    * wants these suppressed *)
   C.print_CIL_Input := true;
 
+  (* Load static features *)
+  List.iter Features.registerFeature staticFeatures;
+
+  (* Load plugins. This needs to be done before command-line arguments are built *)
+  List.iter Plugin.load (Plugin.parse Sys.argv);
+
   (*********** COMMAND LINE ARGUMENTS *****************)
   (* Construct the arguments for the features configured from the Makefile *)
   let blankLine = ("", Arg.Unit (fun _ -> ()), "") in
@@ -189,7 +195,7 @@ let theMain () =
            " Enable " ^ fdesc.C.fd_description) ::
           fdesc.C.fd_extraopt @ acc
       )
-      staticFeatures
+      (Features.getFeatures ())
       [blankLine]
   in
   let featureArgs = 
@@ -204,6 +210,7 @@ let theMain () =
           "--mergedout", Arg.String (openFile "merged output"
                                        (fun oc -> mergedChannel := Some oc)),
               " specify the name of the merged file";
+          "--load", Arg.String ignore, "" (* ignore --load because they have been processed above already *)
         ]
         @ F.args @ featureArgs in
   begin
@@ -212,7 +219,6 @@ let theMain () =
     Stats.reset Stats.SoftwareTimer;
 
     (* parse the command-line arguments *)
-    List.iter Features.registerFeature staticFeatures;
     Arg.parse (Arg.align argDescr) Ciloptions.recordFile usageMsg;
     Cil.initCIL ();
 
