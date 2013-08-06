@@ -174,6 +174,7 @@ let theMain () =
   List.iter Features.registerFeature staticFeatures;
 
   (* Load plugins. This needs to be done before command-line arguments are built *)
+  Plugin.init ();
   List.iter Plugin.load (Plugin.parse Sys.argv);
 
   (*********** COMMAND LINE ARGUMENTS *****************)
