@@ -4,6 +4,7 @@ let load s =
   try
     (* Dynlink.allow_unsafe_modules true; *)
     E.log "Loading plugin %s\n" s;
+    Dynlink.allow_unsafe_modules true;
     Dynlink.loadfile (Dynlink.adapt_filename s)
   with Dynlink.Error e -> E.s (E.error "%s" (Dynlink.error_message e))
 
