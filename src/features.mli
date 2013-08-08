@@ -32,10 +32,35 @@
  *
  *)
 
-(** Registering external modules to extend CIL *)
+(** Extending CIL with external features *)
 
-(** Register a feature to be used by CIL *)
-val registerFeature : Cil.featureDescr -> unit
+(** Description of a CIL feature. *)
+type t = Cil.featureDescr
 
-(** Get the list of registered features *)
-val getFeatures : unit -> Cil.featureDescr list
+(** Register a feature to be used by CIL. *)
+val register : t -> unit
+
+(**/**)
+
+(** Get the list of registered features. *)
+val list : unit -> t list
+
+(** Initialize the module. This needs to be called before {!loadWithDeps} is
+ * used. Called automatically by {!loadFromArgv}. *)
+val init : unit -> unit
+
+(** Find and dynamically links a module. The name should be either a path to a
+ * cmo, cma or cmxs file, or the name of a findlib package. In the latter case,
+ * package dependencies are loaded automatically. Each file is loaded at most
+ * one.  The loaded module must call {!registerFeature} to make its features
+ * available to CIL. *)
+val loadWithDeps : string -> unit
+
+(** {!loadFromArgv switch} searches {!Sys.argv} for the command-line option
+ * {!switch}, and loads the modules passed as parameters. Ignores every other
+ * {!Sys.argv} element. *)
+val loadFromArgv : string -> unit
+
+(** {!loadFromEnv name} loads coma-separated module names stored in the
+ * environment variable {!name}. *)
+val loadFromEnv : string -> unit

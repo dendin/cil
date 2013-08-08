@@ -138,7 +138,7 @@ let rec processOneFile (cil: C.file) =
             end
           end
         end)
-      (Features.getFeatures ());
+      (Features.list ());
 
 
     (match !outChannel with
@@ -171,11 +171,13 @@ let theMain () =
   C.print_CIL_Input := true;
 
   (* Load static features *)
-  List.iter Features.registerFeature staticFeatures;
+  List.iter Features.register staticFeatures;
 
-  (* Load plugins. This needs to be done before command-line arguments are built *)
-  Plugin.init ();
-  List.iter Plugin.load (Plugin.parse Sys.argv);
+  (* Load plugins. This needs to be done before command-line arguments are
+   * built. *)
+  Features.loadFromEnv "CIL_FEATURES";
+  Features.loadFromArgv "--load";
+
 
   (*********** COMMAND LINE ARGUMENTS *****************)
   (* Construct the arguments for the features configured from the Makefile *)
@@ -196,7 +198,7 @@ let theMain () =
            " Enable " ^ fdesc.C.fd_description) ::
           fdesc.C.fd_extraopt @ acc
       )
-      (Features.getFeatures ())
+      (Features.list ())
       [blankLine]
   in
   let featureArgs = 

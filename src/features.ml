@@ -34,9 +34,71 @@
 
 open Cil
 
+module E = Errormsg
+module D = Dynlink
+module F = Findlib
+
+type t = Cil.featureDescr
+
+(** List of registered features *)
 let features = ref []
+let register f = features := !features @ [f]
+let list () = !features
 
-let registerFeature f =
-  features := !features @ [f]
+(** Dynamic linking *)
 
-let getFeatures () = !features
+let load s =
+  try
+    D.allow_unsafe_modules true;
+    D.loadfile s
+  with D.Error e -> E.s (E.error "%s" (D.error_message e))
+
+(** Findlib magic *)
+
+let initialized = ref false
+let init () =
+  if not !initialized then begin
+    F.init ();
+    initialized := true
+  end
+
+let findlib_lookup s =
+  E.s (E.error "could not find module %s" s)
+
+let find_plugin s =
+  if s = "" then E.s (E.error "missing module name") else
+  if Sys.file_exists s then [s] else findlib_lookup s
+
+(** List of loaded modules *)
+let plugins = ref []
+
+(** Add a single plugin, except if we have added it already *)
+let add_plugin path =
+  if not (List.mem path !plugins) then
+  load path;
+  plugins := path :: !plugins
+
+(** Look for plugin and depencies and add them *)
+let loadWithDeps s =
+  let paths = find_plugin s in
+  List.iter add_plugin paths
+
+(** Parse only {switch} command-line option, ignoring every error raised by other, unparsed
+ * options. Return the list of plugins to load. *)
+let loadFromArgv switch =
+  let spec = [
+    switch, Arg.String loadWithDeps, "";
+    (* ignore --help at this stage *)
+    "--help", Arg.Unit ignore, ""; "-help", Arg.Unit ignore, "" ] in
+  let idx = ref 0 in
+  let rec aux () =
+    try
+      Arg.parse_argv ~current:idx Sys.argv spec ignore ""
+    with Arg.Bad _ | Arg.Help _ -> incr idx; aux ()
+  in init (); aux ()
+
+let loadFromEnv name =
+  try
+    let plugins = Str.split (Str.regexp "[ ,]+") (Sys.getenv name) in
+    List.iter loadWithDeps plugins
+  with Not_found -> ()
